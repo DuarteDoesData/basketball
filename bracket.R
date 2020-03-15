@@ -7,7 +7,7 @@
 #
 # data sources
 # https://www.sports-reference.com/cbb/seasons/2020-school-stats.html
-# https://en.wikipedia.org/wiki/2019_NCAA_Division_I_Men%27s_Basketball_Tournament
+# https://www.sportsbookreviewsonline.com/scoresoddsarchives/ncaabasketball/ncaabasketballoddsarchives.htm
 
 library(tidyverse)
 library(readxl)
