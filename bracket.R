@@ -1,19 +1,17 @@
-# 3/12/2020
-# adding shiny app
-# (1) could alternatively build a shiny app for this with a dropdown of all the teams
+# Created:      3/15/2020, Sabi Horvat
+# Instructions: Run all of the code first, then run the app
 #
-# (2) it would be helpful to have a master table that renames schools from different data sources
-#     it only makes sense to build that once the 64 schools are picked
-
+#
+# Once the schools are picked, will build a master table to align the school names
+#     since the school names are slightly different in the two data sources
+#
+# data sources
 # https://www.sports-reference.com/cbb/seasons/2020-school-stats.html
 # https://en.wikipedia.org/wiki/2019_NCAA_Division_I_Men%27s_Basketball_Tournament
 
 library(tidyverse)
 library(readxl)
 library(shiny)
-
-team1 <- 'duke'
-team2 <- 'clemson'
 
 # import <- read_excel('/Users/horvasab/Desktop/bracket/sports_reference.xlsx', sheet = '2019') %>%
 import1 <- read_excel('sports_reference.xlsx', sheet = '2019') %>%
@@ -33,7 +31,7 @@ stats_2019 <- import1 %>%
   select(school, record, SimpleRatingSystem, StrengthOfSchedule, 
          home, away, conference, 'FG%', `3pg`, FTpg, 'FT%', OREBpg, REBpg,
          ASTpg, STLpg, BLKpg) %>%
-  arrange(desc(SimpleRatingSystem)) 
+  arrange(school)
 
 import2 <- read_excel('ncaa basketball 2019-20.xlsx', sheet = 'Sheet1') %>%
   mutate(school = tolower(Team)) 
@@ -48,7 +46,10 @@ lookup <- import2 %>%
   select(opponent_rot, opponent_school, Date, opponent_final) %>%
   mutate(game_date = paste(ifelse(sapply(Date,nchar)==3,'2020','2019'),Date, sep = '-'))
 games_2020 <- merge(games, lookup) %>%
-  select(game_date, school, Final, opponent_school, opponent_final)
+  select(game_date, school, Final, opponent_school, opponent_final) %>%
+  mutate(win_or_loss = ifelse(Final > opponent_final, 'W', 'L'))
+
+rm(import1, import2, games, lookup)
 
 # matchup
 compare <- function(team1, team2){
@@ -64,7 +65,7 @@ compare <- function(team1, team2){
 matchup <- function(team1, team2){
   matchups <- games_2020 %>%
     filter(school == team1, opponent_school == team2) %>%
-    select(game_date, school, Final, opponent_final, opponent_school)
+    select(game_date, school, Final, opponent_final, opponent_school, win_or_loss)
   matchups
 }
 
@@ -73,56 +74,52 @@ games_last_ten <- function(team) {
   x <- games_2020 %>%
     filter(game_date > '2019-1231') %>%
     filter(school == team) %>%
-    arrange(desc(game_date))
-  top_n(x, 10)
+    arrange(desc(game_date)) %>%
+    top_n(10,game_date)   # slice(1:10) also works
 }
 
-# could alternatively build a shiny app for this with a dropdown of all the teams
-compare <- compare(team1, team2)
-compare
-matchup <- matchup(team1, team2)
-matchup
-games_last_ten_team1 <- games_last_ten(team1)
-games_last_ten_team1
-games_last_ten_team2 <- games_last_ten(team2)
-games_last_ten_team2
 
-rm(games, games_2020, import1, import2, lookup, stats_2019)
+# shiny app
 
-# # further analysis 
-# 
-# # round 1 #1
-# compare <- matchup('gonzaga', 'fairleigh dickinson') # gonzaga
-# compare <- matchup('gonzaga', 'baylor') #gonzaga
-# compare <- matchup('gonzaga', 'florida state') #toss up (gonzaga still won)
-# compare <- matchup('gonzaga', 'texas tech') #toss up (texas tech won)
-# # texas tech was an at-large bid but won 9 of last 10 games
-# # texas tech lost to Virginia in the finals
-# 
-# # round 1 #1
-# compare <- matchup('duke', 'north dakota state') # duke
-# compare <- matchup('duke', 'central florida') # duke
-# compare <- matchup('duke', 'virginia tech') # duke
-# compare <- matchup('duke', 'michigan state') # toss up (michigan won)
-# 
-# # round 1 #1
-# compare <- matchup('virginia', 'purdue') # toss up (virginia won)
-# compare <- matchup('north carolina', 'washington') # maybe nc (washington won)
-# 
-# # last 10 games data
-# # where was the game played (how far from home)
-# # did the two teams already play each other?  who won?
-# # instead, just do a count of the category wins, 
-# #      me eyeballing these is noot a good indication
-# #      and like i learned with conference winners, not always true
-# # great players: http://www.espn.com/mens-college-basketball/statistics
-# 
-# 
-# # do I want to weight certain stats
-# # or should I just count the number of categories that each team is better by?
-# 
-# # ODD 	played against	The EVEN which is one higher than the odd
-# # https://www.sportsbookreviewsonline.com/scoresoddsarchives/ncaabasketball/ncaabasketballoddsarchives.htm
-# # this can look up if the teams played each other earlier in the season
-# # this can also be used to calculate the last 10 games
 
+shinyApp(
+  ui = fluidPage(
+    titlePanel("March Madness Shiny!"),
+    selectInput("team1", 
+                "Choose Team1",
+                stats_2019$school
+    ),
+    selectInput("team2",
+                "Choose Team2",
+                stats_2019$school
+    ),
+    titlePanel("Statistic Comparison"),
+    tableOutput("data1"),
+    titlePanel("Head to Head Games"),
+    tableOutput("data2"),
+    titlePanel("Team1 last 10 games"),
+    tableOutput("data3"),
+    titlePanel("Team2 last 10 games"),
+    tableOutput("data4")
+    
+  ),
+  
+  server = function(input, output) {
+    output$data1 <- renderTable({
+      compare(input$team1, input$team2)
+    }, rownames = TRUE)    
+    
+    output$data2 <- renderTable({
+      matchup(input$team1, input$team2)
+    }, rownames = TRUE)    
+    
+    output$data3 <- renderTable({
+      games_last_ten(input$team1)
+    }, rownames = TRUE)    
+    
+    output$data4 <- renderTable({
+      games_last_ten(input$team2)
+    }, rownames = TRUE)    
+    
+  }
+)
