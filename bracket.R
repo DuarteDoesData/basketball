@@ -1,4 +1,5 @@
 # Created:      3/15/2020, Sabi Horvat
+# Updated:      2021 data added 3/13/2021
 # Instructions: Run all of the code first, then run the app
 #
 #
@@ -6,15 +7,16 @@
 #     since the school names are slightly different in the two data sources
 #
 # data sources
-# https://www.sports-reference.com/cbb/seasons/2020-school-stats.html
+# https://www.sports-reference.com/cbb/seasons/2021-school-stats.html
 # https://www.sportsbookreviewsonline.com/scoresoddsarchives/ncaabasketball/ncaabasketballoddsarchives.htm
 
 library(tidyverse)
 library(readxl)
 library(shiny)
 
+
 # import <- read_excel('/Users/horvasab/Desktop/bracket/sports_reference.xlsx', sheet = '2019') %>%
-import1 <- read_excel('sports_reference.xlsx', sheet = '2019') %>%
+import1 <- read_csv('2021_sports_reference.csv') %>%
   mutate(conference = paste(W_conf, "-", L_conf)) %>%
   mutate(record = paste(Wins, "-", Losses)) %>%
   mutate(home = paste(W_home, "-", L_home)) %>%
@@ -33,7 +35,7 @@ stats_2019 <- import1 %>%
          ASTpg, STLpg, BLKpg) %>%
   arrange(school)
 
-import2 <- read_excel('ncaa basketball 2019-20.xlsx', sheet = 'Sheet1') %>%
+import2 <- read_excel('ncaa basketball 2020-21.xlsx', sheet = 'Sheet1') %>%
   mutate(school = tolower(Team)) 
 games <- import2 %>%
   select(school, Final, Rot, Date) %>%
